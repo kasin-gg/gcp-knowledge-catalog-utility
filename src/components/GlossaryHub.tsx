@@ -107,12 +107,47 @@ export const GlossaryHub: React.FC<GlossaryHubProps> = ({ projectId, onSelectTer
         </div>
       </div>
 
-      {/* Terms Grid */}
+      {/* Glossary Results Summary Banner */}
+      {!loading && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', padding: '14px 22px', background: 'rgba(0,0,0,0.03)', borderRadius: '14px', border: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem', color: 'var(--text-main)' }}>
+            <BookOpen size={18} style={{ color: '#3b82f6' }} />
+            <span>Showing <strong>{terms.length}</strong> Verified Business Glossary Terms</span>
+            {search && <span className="badge badge-blue" style={{ fontSize: '0.75rem' }}>Search: "{search}"</span>}
+            {selectedGlossary !== 'All' && <span className="badge badge-purple" style={{ fontSize: '0.75rem' }}>{selectedGlossary}</span>}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            ⚡ 100% Live Google Cloud Dataplex Vocabulary
+          </div>
+        </div>
+      )}
+
+      {/* Terms Grid & Skeleton Shimmers */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '64px', color: 'var(--text-muted)' }}>Loading Dataplex Business Terms for {projectId}...</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '24px' }}>
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div key={n} className="glass-panel skeleton-shimmer" style={{ padding: '24px', height: '230px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(59,130,246,0.25)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ width: '130px', height: '22px', background: 'var(--border-color)', borderRadius: '6px' }} />
+                <div style={{ width: '80px', height: '18px', background: 'var(--border-color)', borderRadius: '4px' }} />
+              </div>
+              <div style={{ width: '60%', height: '26px', background: 'var(--border-color)', borderRadius: '8px', margin: '14px 0 8px 0' }} />
+              <div style={{ width: '100%', height: '40px', background: 'var(--border-color)', borderRadius: '8px', marginBottom: '16px' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+                <div style={{ width: '130px', height: '22px', background: 'var(--border-color)', borderRadius: '6px' }} />
+                <div style={{ width: '80px', height: '22px', background: 'var(--border-color)', borderRadius: '6px' }} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : terms.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '64px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          No glossary terms found matching your criteria in project '{projectId}'.
+        <div className="glass-panel" style={{ padding: '64px', textAlign: 'center' }}>
+          <BookOpen size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 16px auto', opacity: 0.4 }} />
+          <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '8px' }}>No Business Terms Matched</h3>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>No formal vocabulary terms matched your criteria in project '{projectId}'.</p>
+          <button className="btn-secondary" onClick={() => { setSearch(''); setSelectedGlossary('All'); }}>
+            Reset Search & Filters
+          </button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '24px' }}>

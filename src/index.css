@@ -169,3 +169,20 @@ h1, h2, h3, h4, .brand-font {
 .btn-secondary:hover {
   background: light-dark(rgba(0,0,0,0.04), rgba(255,255,255,0.06));
 }
+
+/* Shimmer Loading Animations */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    light-dark(rgba(0,0,0,0.02), rgba(255,255,255,0.02)) 25%,
+    light-dark(rgba(139,92,246,0.14), rgba(139,92,246,0.25)) 50%,
+    light-dark(rgba(0,0,0,0.02), rgba(255,255,255,0.02)) 75%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 1.6s infinite linear;
+}

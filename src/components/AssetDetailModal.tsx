@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { CatalogAsset, AccessRequest } from '../types';
 import { X, Database, Lock, CheckCircle2, Send, Sparkles, Share2, GitBranch } from 'lucide-react';
 
@@ -7,15 +7,32 @@ interface AssetDetailModalProps {
   onClose: () => void;
 }
 
+const getTierBadgeClass = (tierOrTag: string = '') => {
+  const lower = tierOrTag.toLowerCase();
+  if (lower.includes('tier 4') || lower.includes('secret')) return 'badge badge-red';
+  if (lower.includes('tier 3') || lower.includes('confidential')) return 'badge badge-yellow';
+  if (lower.includes('tier 2') || lower.includes('internal')) return 'badge badge-green';
+  return 'badge badge-blue';
+};
+
 export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ asset, onClose }) => {
   const [justification, setJustification] = useState('');
   const [duration, setDuration] = useState(30);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [lineage, setLineage] = React.useState<any>(null);
+  const [lineage, setLineage] = useState<any>(null);
+  const [lazyColumns, setLazyColumns] = useState<any[]>([]);
+  const [loadingCols, setLoadingCols] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (asset) {
+      setLazyColumns(asset.columns || []);
+      setLoadingCols(true);
+      fetch(`http://localhost:8000/api/catalog/asset/${asset.id}/schema`)
+        .then(r => r.json())
+        .then(cols => { setLazyColumns(cols); setLoadingCols(false); })
+        .catch(() => setLoadingCols(false));
+
       fetch(`http://localhost:8000/api/catalog/lineage/${asset.id}`)
         .then(r => r.json())
         .then(data => setLineage(data))
@@ -31,20 +48,18 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ asset, onClo
     try {
       const reqBody: AccessRequest = {
         asset_id: asset.id,
-        user_email: "business.user@enterprise.com",
+        user_email: "analyst@enterprise.org",
         justification,
         duration_days: duration
       };
-      const res = await fetch('http://localhost:8000/api/catalog/request-access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("http://localhost:8000/api/catalog/request-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reqBody)
       });
-      if (res.ok) {
-        setSubmitted(true);
-      }
-    } catch (err) {
-      console.error("Failed to submit access request:", err);
+      setSubmitted(true);
+    } catch (e) {
+      alert("Request failed");
     } finally {
       setSubmitting(false);
     }
@@ -53,10 +68,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ asset, onClo
   return (
     <div style={{
       position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(0, 0, 0, 0.65)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
@@ -66,10 +78,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ asset, onClo
       justifyContent: 'center',
       padding: '24px'
     }}>
-      
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', padding: '32px', position: 'relative', background: 'var(--bg-card)' }}>
-        
-        {/* Close Button */}
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '950px', maxHeight: '90vh', overflowY: 'auto', padding: '36px', position: 'relative', background: 'var(--bg-card)' }}>
         <button onClick={onClose} style={{ position: 'absolute', right: '24px', top: '24px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
           <X size={24} />
         </button>
@@ -78,7 +87,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ asset, onClo
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
           <span className="badge badge-blue">{asset.system}</span>
           <span className="badge badge-yellow">{asset.asset_type}</span>
-          <span className="badge badge-green">Tier: {asset.tier}</span>
+          <span className={getTierBadgeClass(asset.tier)}>Tier: {asset.tier}</span>
         </div>
 
         <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '6px' }}>{asset.display_name}</h2>
@@ -108,14 +117,46 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ asset, onClo
                   <div><span style={{ color: 'var(--text-muted)' }}>Personal Data (PII):</span> <strong>{asset.aspects.is_personal_data ? "Yes (Governed)" : "No"}</strong></div>
                   <div><span style={{ color: 'var(--text-muted)' }}>Owner Dept:</span> <strong>{asset.aspects.data_owner}</strong></div>
                 </div>
-                {asset.policy_tags && asset.policy_tags.length > 0 && (
-                  <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(139,92,246,0.2)', fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                    <span style={{ color: '#ef4444', fontWeight: 700 }}>🔒 Active Policy Tags: </span>
-                    {asset.policy_tags.join(', ')}
-                  </div>
-                )}
               </div>
             )}
+
+            {/* Structured Column Schema Table */}
+            <div style={{ marginTop: '24px' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Database size={18} style={{ color: '#8b5cf6' }} /> Physical Column Schemas & Governance ({lazyColumns.length} Fields)
+              </h3>
+              <div style={{ maxHeight: '320px', overflowY: 'auto', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
+                {loadingCols ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>⚡ Fetching downscoped column schema...</div>
+                ) : lazyColumns.length === 0 ? (
+                  <div style={{ padding: '24px', color: 'var(--text-muted)' }}>No column metadata available.</div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', borderBottom: '2px solid var(--border-color)', zIndex: 10 }}>
+                      <tr>
+                        <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Column Name</th>
+                        <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Data Type</th>
+                        <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Security Policy Tag</th>
+                        <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Governing Glossary Term</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lazyColumns.map((col, i) => (
+                        <tr key={col.name} style={{ borderBottom: '1px solid rgba(139,92,246,0.1)', background: i % 2 === 0 ? 'transparent' : 'rgba(139,92,246,0.02)' }}>
+                          <td style={{ padding: '10px 16px', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-main)' }}>{col.name}</td>
+                          <td style={{ padding: '10px 16px' }}>
+                            <span className="badge badge-blue" style={{ fontSize: '0.7rem' }}>{col.type}</span>
+                            {col.mode === '🔑 PRIMARY KEY' && <span className="badge badge-yellow" style={{ fontSize: '0.7rem', marginLeft: '6px' }}>🔑 PK</span>}
+                          </td>
+                          <td style={{ padding: '10px 16px' }}>{col.policy_tag && col.policy_tag !== 'None' ? <span className={getTierBadgeClass(col.policy_tag)} style={{ fontSize: '0.7rem' }}>🔒 {col.policy_tag}</span> : <span style={{ color: 'var(--text-muted)' }}>Standard</span>}</td>
+                          <td style={{ padding: '10px 16px' }}>{col.glossary_term ? <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>📖 {col.glossary_term}</span> : <span style={{ color: 'var(--text-muted)' }}>Unbound</span>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
 
             {/* Lineage Preview */}
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: '24px 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -224,9 +265,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ asset, onClo
             </form>
           )}
         </div>
-
       </div>
-
     </div>
   );
 };

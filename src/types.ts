@@ -37,6 +37,14 @@ export interface CatalogAsset {
   quality_score: number;
   access_status: 'GRANTED' | 'REQUEST_REQUIRED';
   policy_tags?: string[];
+  glossary_terms?: string[];
+  columns?: {
+    name: string;
+    type: string;
+    mode: string;
+    policy_tag?: string;
+    glossary_term?: string;
+  }[];
   aspects?: {
     thai_description?: string;
     security_tier?: string;
@@ -47,6 +55,13 @@ export interface CatalogAsset {
 
 export interface AccessRequest {
   asset_id: string;
+  user_email: string;
+  justification: string;
+  duration_days: number;
+}
+
+export interface BulkAccessRequest {
+  asset_ids: string[];
   user_email: string;
   justification: string;
   duration_days: number;

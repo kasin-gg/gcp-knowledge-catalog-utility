@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import type { CatalogAsset } from '../types';
-import { Search, Sparkles, CheckCircle2, Lock, ArrowUpRight } from 'lucide-react';
+import { Search, Sparkles, CheckCircle2, Lock, ArrowUpRight, Database, ShoppingCart, Filter, BookOpen } from 'lucide-react';
 
 interface DiscoverySearchProps {
   projectId: string;
   onSelectAsset: (asset: CatalogAsset) => void;
 }
+
+const getTierBadgeClass = (tierOrTag: string = '') => {
+  const lower = tierOrTag.toLowerCase();
+  if (lower.includes('tier 4') || lower.includes('secret')) return 'badge badge-red';
+  if (lower.includes('tier 3') || lower.includes('confidential')) return 'badge badge-yellow';
+  if (lower.includes('tier 2') || lower.includes('internal')) return 'badge badge-green';
+  return 'badge badge-blue';
+};
 
 export const DiscoverySearch: React.FC<DiscoverySearchProps> = ({ projectId, onSelectAsset }) => {
   const [assets, setAssets] = useState<CatalogAsset[]>([]);
@@ -14,6 +22,29 @@ export const DiscoverySearch: React.FC<DiscoverySearchProps> = ({ projectId, onS
   const [selectedSystem, setSelectedSystem] = useState('All');
   const [loading, setLoading] = useState(true);
   const [aiThinking, setAiThinking] = useState(false);
+  const [cart, setCart] = useState<string[]>([]);
+
+  const toggleCart = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCart(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+  };
+
+  const handleBulkCheckout = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/api/catalog/request-bulk-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asset_ids: cart, user_email: "business.user@enterprise.com", justification: "Bulk Data Cart Checkout", duration_days: 30 })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`🎉 Bulk Access Submitted!\nTicket: ${data.ticket_id}\nRouting IAM Conditions for ${cart.length} assets.`);
+        setCart([]);
+      }
+    } catch (err) {
+      console.error("Bulk err:", err);
+    }
+  };
 
   const domains = ['All', 'Finance', 'Risk & Retention', 'Marketing', 'Enterprise Data'];
   const systems = ['All', 'BigQuery', 'Pub/Sub', 'Cloud Storage'];
@@ -109,17 +140,51 @@ export const DiscoverySearch: React.FC<DiscoverySearchProps> = ({ projectId, onS
         </div>
       </div>
 
-      {/* Asset Cards Grid */}
-      {aiThinking ? (
-        <div style={{ padding: '80px', textAlign: 'center' }}>
-          <Sparkles className="animate-spin" size={36} style={{ color: '#8b5cf6', margin: '0 auto 16px auto' }} />
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Querying live GCP Knowledge Catalog API...</h3>
+      {/* Search Results Summary Banner */}
+      {!loading && !aiThinking && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', padding: '14px 22px', background: 'rgba(0,0,0,0.03)', borderRadius: '14px', border: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem', color: 'var(--text-main)' }}>
+            <Sparkles size={18} style={{ color: '#8b5cf6' }} />
+            <span>Showing <strong>{assets.length}</strong> Governed Cloud Assets</span>
+            {query && <span className="badge badge-purple" style={{ fontSize: '0.75rem' }}>Query: "{query}"</span>}
+            {(selectedDomain !== 'All' || selectedSystem !== 'All') && <span className="badge badge-blue" style={{ fontSize: '0.75rem' }}>Active Filters</span>}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            ⚡ 100% Live BigQuery Harvest (No Mock Data)
+          </div>
         </div>
-      ) : loading ? (
-        <div style={{ textAlign: 'center', padding: '64px', color: 'var(--text-muted)' }}>Searching Knowledge Catalog in {projectId}...</div>
+      )}
+
+      {/* Asset Cards Grid & Loading Skeletons */}
+      {aiThinking || loading ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '24px' }}>
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div key={n} className="glass-panel skeleton-shimmer" style={{ padding: '24px', height: '280px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(139,92,246,0.25)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ width: '50px', height: '22px', background: 'var(--border-color)', borderRadius: '6px' }} />
+                  <div style={{ width: '80px', height: '22px', background: 'var(--border-color)', borderRadius: '6px' }} />
+                </div>
+                <div style={{ width: '60px', height: '18px', background: 'var(--border-color)', borderRadius: '4px' }} />
+              </div>
+              <div style={{ width: '100%', height: '6px', background: 'var(--border-color)', borderRadius: '3px', margin: '12px 0' }} />
+              <div style={{ width: '65%', height: '26px', background: 'var(--border-color)', borderRadius: '8px', marginBottom: '12px' }} />
+              <div style={{ width: '100%', height: '48px', background: 'var(--border-color)', borderRadius: '8px', marginBottom: '16px' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+                <div style={{ width: '120px', height: '18px', background: 'var(--border-color)', borderRadius: '4px' }} />
+                <div style={{ width: '90px', height: '22px', background: 'var(--border-color)', borderRadius: '6px' }} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : assets.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '64px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          No data assets found in GCP project '{projectId}'.
+        <div className="glass-panel" style={{ padding: '64px', textAlign: 'center' }}>
+          <Database size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 16px auto', opacity: 0.4 }} />
+          <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '8px' }}>No Governed Assets Matched</h3>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>No tables or topics matched your search query in GCP project '{projectId}'.</p>
+          <button className="btn-secondary" onClick={() => { setQuery(''); setSelectedDomain('All'); setSelectedSystem('All'); }}>
+            Reset Search & Filters
+          </button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '24px' }}>
@@ -132,13 +197,26 @@ export const DiscoverySearch: React.FC<DiscoverySearchProps> = ({ projectId, onS
             >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={cart.includes(asset.id)}
+                      onChange={() => {}}
+                      onClick={(e) => toggleCart(asset.id, e)}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981' }}
+                    />
                     <span className="badge badge-blue">{asset.system}</span>
                     <span className="badge badge-yellow">{asset.asset_type}</span>
+                    <span className={getTierBadgeClass(asset.tier)}>{asset.tier}</span>
                   </div>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: asset.quality_score >= 95 ? '#10b981' : '#f59e0b' }}>
                     DQ Score: {asset.quality_score}%
                   </span>
+                </div>
+
+                {/* Visual Dataplex DQ Health Bar */}
+                <div style={{ width: '100%', background: 'rgba(0,0,0,0.1)', borderRadius: '4px', height: '6px', overflow: 'hidden', marginBottom: '14px' }}>
+                  <div style={{ width: `${asset.quality_score}%`, background: asset.quality_score >= 95 ? '#10b981' : '#f59e0b', height: '100%', transition: 'width 0.5s ease' }} />
                 </div>
 
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px', wordBreak: 'break-all', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -152,6 +230,18 @@ export const DiscoverySearch: React.FC<DiscoverySearchProps> = ({ projectId, onS
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '16px' }}>
                   {asset.description}
                 </p>
+
+                {/* Clickable Glossary Semantic Linkage Pills */}
+                {asset.glossary_terms && asset.glossary_terms.length > 0 && (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#8b5cf6', display: 'flex', alignItems: 'center', marginRight: '2px' }}>📖 Governed By:</span>
+                    {asset.glossary_terms.map(gt => (
+                      <span key={gt} className="badge badge-purple" style={{ cursor: 'pointer', fontSize: '0.75rem' }} onClick={(e) => { e.stopPropagation(); alert(`Navigating to Dataplex Business Glossary Term: ${gt}`); }}>
+                        {gt}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Dataplex Governance Aspects Box */}
                 {asset.aspects && (
@@ -189,6 +279,25 @@ export const DiscoverySearch: React.FC<DiscoverySearchProps> = ({ projectId, onS
 
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Feature 1: Floating Enterprise Data Cart Checkout Bar */}
+      {cart.length > 0 && (
+        <div className="glass-panel animate-bounce" style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 90, padding: '16px 32px', borderRadius: '9999px', display: 'flex', alignItems: 'center', gap: '24px', background: 'var(--bg-card)', border: '2px solid #10b981', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1.5rem' }}>🛒</span>
+            <div style={{ textAlign: 'left' }}>
+              <strong style={{ display: 'block', fontSize: '1rem', color: 'var(--text-main)' }}>{cart.length} Governed {cart.length === 1 ? 'Asset' : 'Assets'} Selected</strong>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ready for bulk IAM downscoped policy routing</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn-secondary" style={{ padding: '8px 16px', borderRadius: '9999px', fontSize: '0.85rem' }} onClick={() => setCart([])}>Clear Cart</button>
+            <button className="btn-primary" style={{ background: '#10b981', padding: '10px 24px', borderRadius: '9999px', fontSize: '0.95rem', fontWeight: 700 }} onClick={handleBulkCheckout}>
+              Request Bulk Access
+            </button>
+          </div>
         </div>
       )}
 
