@@ -1,0 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  /* Curated Premium Color Palette (HSL Tailored) */
+  --brand-primary-light: hsl(220, 90%, 52%);
+  --brand-primary-dark: hsl(195, 100%, 50%);
+  --brand-primary: light-dark(var(--brand-primary-light), var(--brand-primary-dark));
+
+  --bg-page-light: hsl(210, 20%, 98%);
+  --bg-page-dark: hsl(222, 47%, 7%);
+  --bg-page: light-dark(var(--bg-page-light), var(--bg-page-dark));
+
+  --bg-card-light: rgba(255, 255, 255, 0.85);
+  --bg-card-dark: rgba(30, 41, 59, 0.75);
+  --bg-card: light-dark(var(--bg-card-light), var(--bg-card-dark));
+
+  --text-main-light: hsl(222, 47%, 11%);
+  --text-main-dark: hsl(210, 40%, 98%);
+  --text-main: light-dark(var(--text-main-light), var(--text-main-dark));
+
+  --text-muted-light: hsl(215, 16%, 47%);
+  --text-muted-dark: hsl(215, 20%, 65%);
+  --text-muted: light-dark(var(--text-muted-light), var(--text-muted-dark));
+
+  --border-color-light: hsl(214, 32%, 91%);
+  --border-color-dark: hsl(217, 33%, 20%);
+  --border-color: light-dark(var(--border-color-light), var(--border-color-dark));
+
+  --glass-border: light-dark(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.1));
+  --glass-shadow: light-dark(0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 20px 40px -15px rgba(0, 0, 0, 0.5));
+
+  /* MANDATORY: Adapt native browser UI */
+  color-scheme: light dark;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  accent-color: var(--brand-primary);
+}
+
+/* Fallback for browsers without light-dark support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand-primary: var(--brand-primary-dark);
+    --bg-page: var(--bg-page-dark);
+    --bg-card: var(--bg-card-dark);
+    --text-main: var(--text-main-dark);
+    --text-muted: var(--text-muted-dark);
+    --border-color: var(--border-color-dark);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(at 0% 0%, light-dark(rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.15)) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, light-dark(rgba(147, 51, 234, 0.08), rgba(147, 51, 234, 0.12)) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, .brand-font {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--glass-shadow);
+  border-radius: 16px;
+}
+
+.glass-header {
+  background: light-dark(rgba(255, 255, 255, 0.8), rgba(15, 23, 42, 0.8));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Micro-animations per modern-web-guidance */
+.interactive-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.interactive-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--brand-primary);
+  box-shadow: light-dark(0 20px 30px -10px rgba(59, 130, 246, 0.15), 0 25px 40px -10px rgba(0, 229, 255, 0.2));
+}
+
+/* Entry / Exit Transitions using @starting-style */
+.modal-overlay {
+  display: flex;
+  opacity: 1;
+  transition: opacity 0.3s ease, display 0.3s allow-discrete;
+}
+
+@starting-style {
+  .modal-overlay {
+    opacity: 0;
+  }
+}
+
+.modal-overlay.hidden {
+  display: none;
+  opacity: 0;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-green { background: light-dark(#dcfce7, #064e3b); color: light-dark(#15803d, #6ee7b7); }
+.badge-yellow { background: light-dark(#fef9c3, #713f12); color: light-dark(#a16207, #fde047); }
+.badge-red { background: light-dark(#fee2e2, #7f1d1d); color: light-dark(#b91c1c, #fca5a5); }
+.badge-blue { background: light-dark(#e0f2fe, #0c4a6e); color: light-dark(#0369a1, #7dd3fc); }
+.badge-purple { background: light-dark(#f3e8ff, #581c87); color: light-dark(#7e22ce, #e9d5ff); }
+
+/* Custom Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand-primary-light), hsl(250, 90%, 60%));
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary:hover {
+  opacity: 0.92;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: light-dark(rgba(0,0,0,0.04), rgba(255,255,255,0.06));
+}
